@@ -1,0 +1,4 @@
+torch>=2.12
+numpy
+tqdm
+pytest

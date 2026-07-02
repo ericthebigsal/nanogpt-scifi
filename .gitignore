@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+nanoGPT/data/scifi_char/sci_fi_corpus.txt
+nanoGPT/data/scifi_char/train.bin
+nanoGPT/data/scifi_char/val.bin
+nanoGPT/data/scifi_char/meta.pkl
+nanoGPT/out-scifi-char/
