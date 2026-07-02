@@ -662,6 +662,8 @@ git commit -m "Add sample generations from the trained checkpoint"
 
 ### Task 8: Pipeline notes
 
+**AMENDMENT (portfolio documentation standard):** this repo is a portfolio artifact and the user wants the write-up held to the rigor of a master's-thesis-style technical report, not a casual blog note. `notes/pipeline-notes.md` is the deep document; Task 9's README stays a concise, practical entry point that links out to it.
+
 **Files:**
 - Create: `notes/pipeline-notes.md`
 
@@ -669,17 +671,26 @@ git commit -m "Add sample generations from the trained checkpoint"
 - Consumes: nothing programmatic — written by hand, informed by Tasks 2–7.
 - Produces: `notes/pipeline-notes.md` — the Phase 1 "plain-language notes" deliverable, referenced from Task 9's README.
 
-- [ ] **Step 1: Write the notes**
+- [ ] **Step 1: Write the notes as a structured technical report**
 
-Write `notes/pipeline-notes.md` covering, in your own words and grounded in what this specific project actually does: (1) tokenization — why char-level here vs. BPE, what `stoi`/`itos` and `meta.pkl` represent; (2) embedding — how token IDs become vectors nanoGPT's `model.py` operates on; (3) self-attention — what `n_head`/`n_embd`/`block_size` control and why this config was sized for M3/laptop scale rather than nanoGPT's defaults; (4) the training loop — what a `loss` value means here (cross-entropy over the char vocab), what eval/train loss reported at each `eval_interval` showed on this run's actual numbers; (5) backprop/update — one paragraph, no need to derive it, just state what's being optimized and why `mps` was used instead of `cpu`/`cuda`.
+Write `notes/pipeline-notes.md` with formal section structure (thesis-chapter style), grounded throughout in this specific project's real numbers and design choices — never generic textbook filler:
 
-This is a writing task with no fixed template — the file's job is to prove you can explain the pipeline without hand-waving, referencing this project's real numbers (final loss, training time, vocab size) rather than generic textbook claims.
+1. **Abstract** — 3-5 sentences: what was built, on what data, what it demonstrates.
+2. **Motivation** — why go beneath the API layer; tie to the "going one layer deeper" framing from the source learning plan.
+3. **Background** — brief, precise definitions of the transformer components this project actually exercises (tokenization, embedding, self-attention, the training loop, backprop/optimization), each with a one-line citation to source material (e.g. Vaswani et al., "Attention Is All You Need," 2017; Karpathy's nanoGPT/"Neural Networks: Zero to Hero").
+4. **Methodology** — the actual pipeline built: char-level tokenization and why (vs. BPE), the `stoi`/`itos`/`meta.pkl` representation, how token IDs become embeddings in `model.py`, what `n_head`/`n_embd`/`block_size` control and why they were sized for M3/laptop scale rather than nanoGPT's defaults, the `mps` backend choice over `cpu`/`cuda`.
+5. **Results** — this run's actual numbers: final train/val loss (cite the specific values from Task 6's run, not placeholders), training time, vocab size, dataset size, and what the loss trajectory showed at each `eval_interval`. Include 1-2 short sample generations as evidence (from Task 7's output).
+6. **Discussion** — what the loss/samples do and don't demonstrate about the model at this scale (e.g. character-level coherence vs. semantic coherence), and the engineering tradeoffs made (why this wasn't a fine-tuning or BPE approach — that's explicitly Phase 2, not this project).
+7. **Limitations** — be honest: laptop-scale model, small compute budget, character-level ceiling on sample quality.
+8. **References** — a short reference list (Vaswani et al. 2017, Karpathy/nanoGPT repo, Karpathy's Zero to Hero series, Project Gutenberg as the data source).
+
+Precise, technical language throughout — no hand-waving, no restating textbook facts without connecting them to what this project's code actually does.
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add notes/pipeline-notes.md
-git commit -m "Add plain-language pipeline notes"
+git commit -m "Add pipeline notes as a structured technical report"
 ```
 
 ---
@@ -698,7 +709,7 @@ Fill in with: final train/val loss from Task 6's run, total training time, vocab
 
 - [ ] **Step 2: Replace the `## What this demonstrates` placeholder**
 
-Fill in with the case-study framing from the LLM Learning Plan doc: problem → what you did → skills demonstrated (tokenization/attention/training-loop understanding, reproducible ML repo engineering, laptop-scale training tradeoffs). Link to `notes/pipeline-notes.md` for the detailed explanation.
+Fill in with the case-study framing from the LLM Learning Plan doc: problem → what you did → skills demonstrated (tokenization/attention/training-loop understanding, reproducible ML repo engineering, laptop-scale training tradeoffs). Keep this section concise (README is the practical entry point) and link prominently to `notes/pipeline-notes.md` — described as "a full technical write-up of the training pipeline, methodology, and results" — since that's where the thesis-level depth from Task 8 lives.
 
 - [ ] **Step 3: Commit**
 
