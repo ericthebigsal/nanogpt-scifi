@@ -21,8 +21,18 @@ built a Python 3.14 virtual environment (`.venv/`) and installed `torch>=2.12`, 
 
 **Why:** Every later task depends on a working, reproducible environment. Pinning to
 Python 3.14 and `torch>=2.12` mattered specifically because this project runs on
-Apple Silicon (M3) rather than the CUDA hardware nanoGPT assumes by default — torch's
-`cp314` wheels for macOS arm64 needed to actually exist before committing to that stack.
+Apple Silicon (M3) rather than the CUDA hardware nanoGPT assumes by default. A
+[wheel](https://packaging.python.org/en/latest/specifications/binary-distribution-format/)
+(`.whl` file) is Python's prebuilt binary package format — `pip install` prefers one
+over building a package from source, but a wheel is only usable if someone has
+published one matching both your Python version and your CPU architecture/OS (encoded
+in its filename as a "platform tag," e.g. `cp314-cp314-macosx_14_0_arm64`: CPython
+3.14, macOS 14+, Apple Silicon). PyTorch's C++/CUDA internals make building it from
+source painful, so this project's viability depended on the PyTorch team having
+already published a `cp314`-tagged, `arm64` wheel; without one, `pip install torch` would
+either fail outright or silently fall back to a slow, from-source build. That wheel's
+existence was confirmed before writing any model code (`torch 2.12.1
+cp314-cp314-macosx_14_0_arm64`, per Task 1's installed-dependency list below).
 
 **Learned:** Confirmed `torch.backends.mps.is_available()` returns `True` on this
 machine before writing a single line of model code — cheap to check up front, expensive
