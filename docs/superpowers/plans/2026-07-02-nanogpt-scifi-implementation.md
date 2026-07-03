@@ -21,6 +21,8 @@
 
 - **Amendment after Task 5 (build log):** in addition to Task 8's polished, thesis-style `notes/pipeline-notes.md`, the controller maintains `notes/build-log.md` continuously across all tasks — a chronological, deliberately-unpolished record of what was done/why/what was learned at each task, including dead ends (e.g. Task 3's corrupted-source bug above) and any real-world interruptions (e.g. machine reboots). This is controller-written directly (not dispatched to task implementer subagents, since it requires cross-task session context) and committed alongside each task's own commit or shortly after. It is a distinct artifact from Task 8/9's polished report, not a replacement for it.
 
+- **Amendment after Task 6 kickoff (non-technical primer):** the repo also carries `notes/llm-primer.md` — a standalone, no-background-required explainer ("200-level college course" pitch) covering how LLMs are trained (tokenization, embeddings, attention, the training loop, hardware, sampling), each concept grounded in this project's real numbers via "In this project" callouts. It's a third, distinct document alongside `build-log.md` (process/engineer audience) and `pipeline-notes.md` (rigorous/technical-reviewer audience) — written and maintained by the controller directly, linked from the README. Update its "In this project" callouts and Module 6/8 forward-references once Tasks 6-7's real loss numbers and sample output exist.
+
 ---
 
 ### Task 1: Repo scaffolding

@@ -11,6 +11,12 @@ The Time Machine, The War of the Worlds, Flatland, R.U.R., and others),
 reproducible from source via the scripts below — the corpus itself is not
 committed to this repo.
 
+**New to how LLMs are trained?** Start with
+[`notes/llm-primer.md`](notes/llm-primer.md) — a no-background-required
+explainer covering tokenization, embeddings, attention, and the training loop,
+grounded throughout in this project's actual numbers. For the engineering
+process (including bugs and dead ends), see [`notes/build-log.md`](notes/build-log.md).
+
 ## Setup
 
 ```bash
