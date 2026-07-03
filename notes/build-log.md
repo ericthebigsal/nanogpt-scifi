@@ -183,11 +183,102 @@ timestamps to reconstruct state.
 
 ---
 
-## Task 6 — Training config and baseline run
+## Task 6 — Training config and baseline run (and a memory-pressure detour)
 
-_In progress — this section will be filled in with the actual run once training
-completes (config: 6 layers, 6 heads, 384-dim embeddings, block size 256, batch size
-64, `mps` backend, 3000 iterations)._
+**What:** Wrote `nanoGPT/config/train_scifi_char.py` (6 layers, 6 heads, 384-dim
+embeddings, block size 256, `mps` backend, 3,000 iterations) and ran the baseline
+training. This task took two attempts because the first attempt uncovered a real
+environmental problem, not a code bug — worth documenting in full because the
+debugging process and the decision it led to are as instructive as the training
+result itself.
+
+### The problem
+
+The first training attempt (`batch_size=64`, `gradient_accumulation_steps=1`,
+16,384 tokens/iteration) never produced a usable run. It consumed CPU for 70+
+minutes and produced zero checkpoint and almost no log output, well past the
+15–30 minute window the task brief expected.
+
+### Symptoms
+
+- A short, verbose 20-iteration smoke test (added specifically to diagnose this —
+  see Investigation below) showed the model initializing correctly (10.72M
+  parameters, sane starting loss of ~5.49, matching the theoretical random-guess
+  baseline of `ln(251) ≈ 5.5` for a 251-character vocabulary) — so the config and
+  code path were not the problem.
+- But per-iteration time was wildly erratic and *increasing*: `8.2s → 2.7s → 68.2s
+  → 144.3s → 116.1s` for iterations 0–4. Real, correctly-configured training on
+  this hardware should take well under a second per iteration at this model size —
+  not tens of seconds, and not a climbing trend.
+- `vm_stat` during the stalled run showed only ~4,000 free memory pages (~66MB)
+  on an 8GB machine, alongside hundreds of millions of cumulative `Swapins`/
+  `Swapouts` — i.e. the system was thrashing (swapping actively-used memory to
+  disk and back), not idling or crashing.
+
+### Investigation
+
+An initial attempt to delegate this task to a subagent went in circles: it tried
+importing `train.py` as a module to debug it (which broke nanoGPT's own
+config-override mechanism and produced an unrelated, misleading `AssertionError:
+Torch not compiled with CUDA enabled`), tried several output-buffering fixes, and
+eventually reported BLOCKED without ever forming a testable hypothesis about *why*
+iterations were slow — a good example of "random fixes waste time" from
+[superpowers:systematic-debugging]: none of those attempts gathered evidence about
+the actual runtime behavior of a working run.
+
+The controller re-approached this by direct evidence-gathering: reproduce with a
+short, cheap smoke test (20 iterations, unbuffered stdout, `log_interval=1`) rather
+than immediately re-running the full 3,000-iteration job, then check system state
+(`vm_stat`, `ps -eo pid,rss,comm -r`) *while it ran*. That surfaced the free-memory
+and swap numbers above, plus the fact that Chrome (several helper processes) and
+Claude Code itself were the two largest resident-memory consumers competing with
+the training process for the same 8GB of unified memory that Apple's `mps` backend
+shares between CPU and GPU.
+
+**Root cause:** not a bug — a memory-constrained 8GB development machine, with
+other running applications, left too little free memory for this training job's
+working set, causing the OS to swap actively-used pages to disk mid-computation.
+That swapping, not the model or the code, was responsible for the erratic,
+escalating iteration times.
+
+### Options considered
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Close memory-heavy apps (e.g. Chrome) before training** | Zero changes to config or code; matches the exact numbers already documented in `llm-primer.md`/the plan; simplest to reason about | Manual step required before every training run; doesn't fix the underlying fragility if something else consumes memory later |
+| **Run the full job anyway, under memory pressure** | No changes needed at all | Could take hours instead of minutes (unbounded — the smoke test showed *worsening*, not stable, iteration times); wastes wall-clock proving nothing new |
+| **Shrink the model itself** (`n_embd`, `n_layer`, or `block_size`) | Directly and reliably reduces memory footprint | Changes the actual model being trained — weaker capacity (`n_embd`/`n_layer`) or a smaller context window (`block_size`, which scales attention memory quadratically) would likely produce measurably worse loss/sample quality, and requires rewriting the numbers already committed to `llm-primer.md`, this build log, and the plan's Task 6 brief |
+| **Reduce `batch_size`, compensate with `gradient_accumulation_steps`** (chosen) | Shrinks peak activation memory (the actual bottleneck) without changing the model or the effective training statistics — `batch_size=16` × `gradient_accumulation_steps=4` reproduces the exact same 16,384 tokens/iteration as the original `batch_size=64` single-step config | Each iteration now runs 4 smaller forward/backward passes instead of 1 large one, adding some fixed per-call overhead — slightly slower per iteration even once memory pressure is resolved |
+
+### Decision
+
+Eric chose **reduce `batch_size` + add `gradient_accumulation_steps`** — the
+option that treats this as an engineering response to a memory-constrained
+*environment*, not a reason to compromise the model being trained. It's also
+arguably better portfolio material than either alternative: it demonstrates
+understanding of what specifically consumes memory during training (activations,
+not parameters) and how to trade a memory budget against wall-clock time without
+touching model quality.
+
+### Outcome
+
+A second smoke test with `batch_size=16, gradient_accumulation_steps=4` (same
+16,384 tokens/iteration) showed the fix worked immediately: iteration time
+stabilized at a consistent ~900ms (vs. the previous run's climbing 8s→144s), with
+loss dropping cleanly from 5.49 to 3.17 over the first 20 iterations. System-wide
+free memory was still low, but the smaller per-step working set avoided triggering
+the severe swapping the larger batch size caused.
+
+**Learned:** when a training run "hangs" with no output, the instinct to add more
+logging or fix output buffering can be a distraction from the real question —
+*is the hardware actually keeping up?* A single `vm_stat` check settled in seconds
+what 70+ minutes of blind waiting couldn't. It's also worth separating "is my
+config/code correct" from "does my environment have the resources this job needs"
+as two genuinely different failure modes with different fixes — conflating them
+is what led the first debugging attempt in circles.
+
+_Final loss numbers, training time, and commit SHA to be added once the full
+3,000-iteration run completes._
 
 ---
 

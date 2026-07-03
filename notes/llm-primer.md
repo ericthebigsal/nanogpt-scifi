@@ -184,8 +184,16 @@ This is where "training" stops being a metaphor and becomes a concrete, repeatab
 loop.
 
 1. **Sample a batch.** Pull a handful of chunks of text from the training data —
-   each chunk is `block_size` characters long. (In this project: 64 chunks at a
-   time — the `batch_size`.)
+   each chunk is `block_size` characters long, and the number of chunks pulled
+   at once is the `batch_size`. Bigger batches give the model a more stable,
+   averaged-out signal per step, but cost more memory — every chunk in a batch
+   needs its own copy of every intermediate calculation held in memory
+   simultaneously for the backpropagation step below. When a batch doesn't fit in
+   available memory, **gradient accumulation** splits it into several smaller
+   "microbatches," runs each one through steps 2–4 separately, and adds up
+   (accumulates) their nudges before actually applying them in step 5 — arriving
+   at the same effective batch size and the same training math, just computed a
+   few pieces at a time instead of all at once.
 2. **Predict.** For every position in every chunk, the model outputs its current
    guess at a probability distribution over "what character comes next."
 3. **Measure the loss.** Compare the model's predicted probabilities against the
@@ -223,10 +231,15 @@ Two more concepts that matter for judging whether training actually worked:
   are saved to disk as a **checkpoint** — a snapshot you can later load back up to
   generate text or resume training, without redoing any of the work that produced it.
 
-> **In this project:** batch size 64, block size 256, 3,000 iterations, loss
-> evaluated on the held-out validation set every 250 iterations. See
-> [`build-log.md`](build-log.md)'s Task 6 entry for the actual first-vs-last loss
-> numbers from this run once training completes.
+> **In this project:** `batch_size=16` with `gradient_accumulation_steps=4` —
+> 16,384 tokens processed per iteration either way, split into 4 microbatches of
+> 16 chunks each rather than 1 batch of 64. Block size 256, 3,000 iterations,
+> loss evaluated on the held-out validation set every 250 iterations. The
+> microbatch split wasn't the original plan — see [`build-log.md`](build-log.md)'s
+> Task 6 entry for why (a real 8GB-RAM memory-pressure problem, diagnosed and
+> fixed via gradient accumulation rather than by shrinking the model). See that
+> same entry for the actual first-vs-last loss numbers from this run once
+> training completes.
 
 ---
 
@@ -255,6 +268,16 @@ tractable, not to produce a model that competes with production systems.
 > **In this project:** `device = 'mps'` in the training config, confirmed available
 > (`torch.backends.mps.is_available() == True`) before any training was attempted —
 > see [`build-log.md`](build-log.md)'s Task 1 entry.
+
+A laptop-scale caveat worth naming explicitly: `mps` uses **unified memory** — the
+same physical RAM is shared between the CPU and the GPU, rather than a GPU having
+its own dedicated, separate memory the way most NVIDIA cards do. That means
+training competes for memory with whatever else is running on the machine at the
+time (a browser, other apps) — running low on free memory doesn't just risk a
+crash, it can make training silently, severely slower (the OS starts swapping
+memory to disk), long before it fails outright. This project ran into exactly that
+on an 8GB machine — see [`build-log.md`](build-log.md)'s Task 6 entry for the full
+diagnosis and fix.
 
 ---
 
@@ -296,7 +319,9 @@ Reading top to bottom, here's the whole pipeline in one pass, module by module:
    vocabulary, 26.0M training tokens / 2.9M validation tokens.
 3. **(Modules 3–5)** Defined a small Transformer: 384-dimensional embeddings,
    6 attention heads, 6 stacked layers, a 256-character context window.
-4. **(Module 6)** Trained it for 3,000 iterations, in batches of 64 chunks,
+4. **(Module 6)** Trained it for 3,000 iterations, in effective batches of 64
+   chunks (split into 4 microbatches of 16 via gradient accumulation, for memory
+   reasons — see Module 6's callout),
    watching the loss drop from a random-guessing baseline (~5.5 nats) toward
    something meaningfully lower, checked periodically against held-out
    validation data.
@@ -326,6 +351,7 @@ For the specific numbers this run actually produced, see
 | **Learning rate** | How large a step each parameter update takes. |
 | **Iteration / step** | One full pass of predict → measure loss → update weights, on one batch. |
 | **Batch** | A handful of training examples processed together in one iteration. |
+| **Gradient accumulation** | Splitting a batch into smaller microbatches to fit in available memory, summing their nudges before applying them — same effective batch size and math, less peak memory. |
 | **Epoch** | One full pass over the entire training dataset (not directly tracked in this project — progress is measured in iterations instead). |
 | **Overfitting** | When a model memorizes training data instead of learning generalizable patterns; caught by comparing training vs. validation loss. |
 | **Checkpoint** | A saved snapshot of a model's parameters at a point in training. |

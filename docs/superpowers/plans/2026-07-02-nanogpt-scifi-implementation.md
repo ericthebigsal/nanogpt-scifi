@@ -617,6 +617,8 @@ device = 'mps'
 compile = False
 ```
 
+**ACTUAL result:** the first run of this config (`gradient_accumulation_steps=1`, `batch_size=64`) hit a real memory-pressure problem on this 8GB dev machine — iteration times climbed erratically (8s → 144s) instead of completing in the expected window, root-caused via `vm_stat` to severe swapping under low free memory, not a code or config bug. Fixed by changing to `gradient_accumulation_steps=4, batch_size=16` (same 16,384 tokens/iteration as the original single-batch config, just split into 4 microbatches) rather than shrinking the model itself. Full diagnosis, options considered (with pros/cons), and the decision rationale are in [`notes/build-log.md`](../../../notes/build-log.md)'s Task 6 entry. The two lines above should read `gradient_accumulation_steps = 4` and `batch_size = 16` accordingly.
+
 - [ ] **Step 2: Run the baseline training**
 
 Run: `cd nanoGPT && python train.py config/train_scifi_char.py`
