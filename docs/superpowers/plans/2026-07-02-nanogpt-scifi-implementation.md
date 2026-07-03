@@ -19,6 +19,8 @@
 - git identity for this repo is already set locally: `Eric Salerno <esalerno86@gmail.com>`.
 - **Amendment after Task 3:** `/Users/ericsalerno/Documents/llm-learning/sci_fi_corpus.txt` turned out to be mis-encoded (literal Python `bytes.repr()` text, ~0 real newline characters) — unusable as a source of body text or titles. It was used ONLY to extract the list of 97 Gutenberg eBook IDs (via the bounded `[eBook #N]` pattern, which survived the corruption). `manifest.json` is now `[int, ...]` — a plain list of Gutenberg IDs, no `title` field. The corpus body text and book titles are both sourced fresh from Project Gutenberg in Task 4 — the corrupted local file is not used for anything beyond Task 3 and is never referenced by committed code again.
 
+- **Amendment after Task 5 (build log):** in addition to Task 8's polished, thesis-style `notes/pipeline-notes.md`, the controller maintains `notes/build-log.md` continuously across all tasks — a chronological, deliberately-unpolished record of what was done/why/what was learned at each task, including dead ends (e.g. Task 3's corrupted-source bug above) and any real-world interruptions (e.g. machine reboots). This is controller-written directly (not dispatched to task implementer subagents, since it requires cross-task session context) and committed alongside each task's own commit or shortly after. It is a distinct artifact from Task 8/9's polished report, not a replacement for it.
+
 ---
 
 ### Task 1: Repo scaffolding
