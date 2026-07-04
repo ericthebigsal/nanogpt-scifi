@@ -648,8 +648,11 @@ git commit -m "Add M3/mps training config for scifi_char, run baseline"
 
 - [ ] **Step 1: Generate samples**
 
-Run: `cd nanoGPT && python sample.py --out_dir=out-scifi-char --num_samples=3 --max_new_tokens=500`
+Run: `cd nanoGPT && python sample.py --out_dir=out-scifi-char --num_samples=3 --max_new_tokens=500 --device=mps`
 Expected: prints 3 generated text samples to stdout, separated by `---------------`.
+(`--device=mps` needed since `sample.py`'s default is `cuda`, which asserts on this hardware.)
+
+**ACTUAL result:** the first run failed with `ModuleNotFoundError: No module named 'tiktoken'` — vendored `sample.py` imports `tiktoken` unconditionally, though it's only used on a no-`meta.pkl` fallback path this project never hits. Fixed by making that import lazy (moved inside the branch that uses it) rather than adding an unused dependency. See [`notes/build-log.md`](../../../notes/build-log.md)'s Task 7 entry.
 
 - [ ] **Step 2: Save the output**
 

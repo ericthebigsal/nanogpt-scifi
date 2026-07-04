@@ -307,8 +307,18 @@ repetitive); higher temperature gives lower-probability characters more of a
 chance to be picked (more varied, but riskier — more chances to produce nonsense).
 
 > **In this project:** samples are generated from the Task 6 checkpoint via
-> nanoGPT's `sample.py`; see `notes/sample_output.txt` (Task 7) for actual
-> generated excerpts once that task runs.
+> nanoGPT's `sample.py` (default `temperature=0.8`). One actual excerpt:
+>
+> > "...said the man. 'Now let us which well be one man we shall say to get out
+> > off of the Brazing—or they come after an idle added to disappear.' 'What do
+> > you can be the prince, Pencroft?'"
+>
+> Notice what's right and what's not: spelling, punctuation, and dialogue
+> formatting (quote marks, `said the man.`) are consistently correct — but the
+> sentences don't hold together as meaning. That's the character-level ceiling
+> discussed in Module 9. Full samples: [`notes/sample_output.txt`](sample_output.txt);
+> the debugging story behind generating them (a small vendored-code fix, not a
+> project bug) is in [`build-log.md`](build-log.md)'s Task 7 entry.
 
 ---
 

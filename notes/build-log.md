@@ -351,5 +351,40 @@ _Commit: `2f0d61d`_
 
 ---
 
+## Task 7 — Sample generation
+
+**What:** Ran nanoGPT's `sample.py` against the Task 6 checkpoint to generate 3
+samples of 500 characters each, saved to `notes/sample_output.txt`.
+
+**Why:** Loss curves prove the model is learning *something*, but they don't show
+what — actually reading generated text is the only way to see character-level
+learning made concrete: real word boundaries, plausible spelling, punctuation and
+dialogue conventions, sci-fi vocabulary bleeding through from training data.
+
+**What went wrong (small, quick fix):** the first run failed immediately with
+`ModuleNotFoundError: No module named 'tiktoken'`. Vendored nanoGPT's `sample.py`
+imports `tiktoken` unconditionally at the top of the file, but only actually
+*uses* it on a fallback path for datasets that have no `meta.pkl` (i.e. datasets
+tokenized with GPT-2's BPE vocabulary) — a path this project's char-level
+tokenizer (Task 5) never takes, since `meta.pkl` always exists here. Rather than
+add `tiktoken` as a dependency this project doesn't otherwise need (violating the
+plan's "no BPE/tiktoken" constraint just to satisfy an unused import), the fix was
+to move `import tiktoken` from module load time into the specific `else` branch
+that actually calls it — a one-line, behavior-preserving change to vendored code.
+
+**Learned:** the samples themselves are a good illustration of what character-
+level training does and doesn't buy you at this scale: spelling, punctuation, and
+dialogue formatting (`"..." said the man.`) are consistently correct, and sci-fi
+vocabulary from the training corpus surfaces clearly (*tentacles*, *projectiles*,
+*monster*, *Empress*, *cavern*) — but sentences don't hold together semantically
+("the carlot of addition," "Hercur"). That gap (fluent local structure, no
+long-range meaning) is exactly what Module 8/9 of
+[`llm-primer.md`](llm-primer.md) predicts for a 10.7M-parameter, character-level
+model, and it's real evidence of it rather than a claim.
+
+_Commit: `ba79299`_
+
+---
+
 _This log is updated as work progresses; see `git log` for the authoritative,
 timestamped record of every change described above._
