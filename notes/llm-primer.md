@@ -237,9 +237,11 @@ Two more concepts that matter for judging whether training actually worked:
 > loss evaluated on the held-out validation set every 250 iterations. The
 > microbatch split wasn't the original plan — see [`build-log.md`](build-log.md)'s
 > Task 6 entry for why (a real 8GB-RAM memory-pressure problem, diagnosed and
-> fixed via gradient accumulation rather than by shrinking the model). See that
-> same entry for the actual first-vs-last loss numbers from this run once
-> training completes.
+> fixed via gradient accumulation rather than by shrinking the model). Training
+> loss dropped from `5.4625` at iteration 0 to `1.2332` at iteration 3,000 (val
+> loss `5.4589` → `1.3032`, tracking train loss closely — no meaningful
+> overfitting at this scale). See `build-log.md`'s Task 6 entry for the full
+> per-checkpoint trajectory.
 
 ---
 

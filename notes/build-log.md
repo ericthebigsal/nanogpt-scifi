@@ -277,8 +277,77 @@ config/code correct" from "does my environment have the resources this job needs
 as two genuinely different failure modes with different fixes — conflating them
 is what led the first debugging attempt in circles.
 
-_Final loss numbers, training time, and commit SHA to be added once the full
-3,000-iteration run completes._
+### A second interruption, and why checkpointing paid off
+
+With the memory fix in place, the corrected run (`batch_size=16,
+gradient_accumulation_steps=4`) started cleanly at 16:17 and trained smoothly —
+loss dropping from `5.46` at iter 0 to `1.35` by iter 1500 (a checkpoint saved
+automatically at that point, per `eval_interval=250` × `always_save_checkpoint`).
+At 16:52 (iter 1740, ~35 minutes in) the background process was killed. This was
+a *different* failure mode from the memory issue: macOS's unified log showed 15
+sleep/wake cycles that day and no memory/jetsam kill anywhere near the process —
+the training command simply hadn't been wrapped in `caffeinate`, so ordinary
+system idle sleep took the process down. Root cause confirmed, not guessed: this
+is exactly the kind of "two genuinely different failure modes" the memory bug's
+lesson above calls out — thrashing and sleep produce superficially similar
+symptoms (a training run that stops making progress) but need entirely different
+fixes.
+
+Because nanoGPT's `always_save_checkpoint=True` had been saving a full,
+resumable checkpoint (model weights, optimizer state, and `iter_num`) every 250
+iterations, none of that first 1500 iterations of work was lost. Training was
+relaunched as `caffeinate -i python train.py config/train_scifi_char.py
+--init_from=resume`, which picked back up at iter 1500 exactly (`step 1500: train
+loss 1.3453, val loss 1.4053` — matching the pre-interruption checkpoint almost
+exactly) and ran the remaining 1500 iterations to completion. One further,
+smaller anomaly appeared mid-resume — a single iteration (2740) took ~15 minutes
+against a ~1-second steady state, almost certainly a display-sleep/wake blip that
+`caffeinate -i`'s idle-sleep prevention doesn't fully cover — but the run
+self-recovered without intervention and reached `max_iters=3000`.
+
+**Learned:** a `caffeinate`-wrapped, checkpoint-resumable training command is
+worth setting up *before* the first real run on any long training job on
+consumer hardware, not after the first interruption — the entire second
+disruption cost zero lost training progress specifically because
+`always_save_checkpoint` and nanoGPT's `init_from='resume'` path existed and were
+already being used. Note also that `caffeinate` only prevents *idle* system
+sleep; it cannot prevent sleep from a physically closed laptop lid, and does not
+fully guarantee against display-sleep-related hiccups.
+
+### Final result
+
+| | Start (iter 0) | End (iter 3000) |
+|---|---|---|
+| Train loss | 5.4625 | **1.2332** |
+| Val loss | 5.4589 | **1.3032** |
+
+Val loss tracked train loss closely throughout (final gap: 0.07), showing no
+meaningful overfitting at this scale. Full eval-interval trajectory:
+
+```
+step    0: train 5.4625, val 5.4589
+step  250: train 2.1241, val 2.1001
+step  500: train 1.7561, val 1.7495
+step  750: train 1.5712, val 1.5959
+step 1000: train 1.4663, val 1.4940
+step 1250: train 1.4077, val 1.4349
+step 1500: train 1.3500, val 1.3964   <- checkpoint; run interrupted by system sleep here
+step 1500: train 1.3453, val 1.4053   <- resumed from checkpoint, confirms clean resume
+step 1750: train 1.3125, val 1.3600
+step 2000: train 1.2921, val 1.3437
+step 2250: train 1.2602, val 1.3339
+step 2500: train 1.2465, val 1.3182
+step 2750: train 1.2475, val 1.3128
+step 3000: train 1.2332, val 1.3032   <- final
+```
+
+Combined wall-clock across both attempts: ~35 minutes (first attempt, iters
+0–1740) + ~69 minutes (resumed attempt, iters 1500–3000, inflated by the ~15-minute
+mid-run anomaly noted above) — well above the plan's original 15–30 minute
+estimate, almost entirely due to the two interruptions rather than steady-state
+compute (which held at a consistent ~0.9–1.1s/iteration throughout).
+
+_Commit: `2f0d61d`_
 
 ---
 
