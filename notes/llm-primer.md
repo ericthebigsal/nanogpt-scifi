@@ -12,7 +12,7 @@ companion to two other documents in this repo, each aimed at a different reader:
 |---|---|---|
 | **`llm-primer.md`** (this doc) | Anyone curious how LLMs work, no background assumed | The concepts, explained from first principles |
 | [`build-log.md`](build-log.md) | Engineers/reviewers interested in process | What was actually done, in what order, including bugs and dead ends |
-| `pipeline-notes.md` *(forthcoming)* | Technical reviewers | A rigorous, cited technical report on this specific implementation and its results |
+| [`pipeline-notes.md`](pipeline-notes.md) | Technical reviewers | A rigorous, cited technical report on this specific implementation and its results |
 
 Each module below ends with a **"In this project"** box connecting the concept to a
 real, specific choice or number from `nanogpt-scifi` — so the ideas aren't abstract.
@@ -343,8 +343,9 @@ Reading top to bottom, here's the whole pipeline in one pass, module by module:
    text, one character at a time.
 
 For the specific numbers this run actually produced, see
-[`build-log.md`](build-log.md) (the process record) and `pipeline-notes.md`
-*(forthcoming)* — the full technical report with cited results and discussion.
+[`build-log.md`](build-log.md) (the process record) and
+[`pipeline-notes.md`](pipeline-notes.md) — the full technical report with cited
+results and discussion.
 
 ---
 
