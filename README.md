@@ -40,7 +40,12 @@ cd nanoGPT
 python train.py config/train_scifi_char.py
 ```
 
-## Sample
+## Sample / Try It Yourself
+
+Once you have a trained checkpoint at `nanoGPT/out-scifi-char/ckpt.pt` (either
+from running Train above yourself, or one you already have — the checkpoint
+itself is gitignored and not part of this repo, since it's a ~130MB binary
+artifact, not source), you can generate text from it directly:
 
 ```bash
 cd nanoGPT
@@ -48,7 +53,43 @@ python sample.py --out_dir=out-scifi-char --device=mps
 ```
 
 (`--device=mps` is required on Apple Silicon — nanoGPT's default is `cuda`, which
-asserts on this hardware.)
+asserts on this hardware. Use `--device=cuda` or omit the flag entirely on an
+NVIDIA GPU machine, or `--device=cpu` — slower, but works anywhere.)
+
+That default invocation seeds generation with an empty prompt and prints 3
+samples of 500 characters each. The flags worth experimenting with:
+
+```bash
+python sample.py --out_dir=out-scifi-char --device=mps \
+  --start="The starship" \
+  --num_samples=1 \
+  --max_new_tokens=300 \
+  --temperature=0.8
+```
+
+- `--start` — the seed text generation continues from (default: empty). Try
+  a sci-fi-flavored opening and see what the model does with it — e.g.
+  `--start="The starship"` produced (this run): *"shaped on the ship, which its
+  head in the carlot was different from the southwest. And there was no food
+  words, when I told out of the Door Corangar lion had come from the State of
+  the Captain major Spilett..."* — correct spelling and punctuation, genre-
+  appropriate vocabulary, no real sentence-level sense. That's the expected
+  character-level ceiling discussed in [`notes/llm-primer.md`](notes/llm-primer.md)
+  and [`notes/pipeline-notes.md`](notes/pipeline-notes.md), not a bug — don't be
+  surprised if your own runs look similar.
+- `--num_samples` / `--max_new_tokens` — how many samples to generate and how
+  long each one is. Generation is fast (a few seconds for a few hundred
+  characters on an M3) since it's a single forward pass per character, not
+  training — no need to wait 15+ minutes the way the Train step does.
+- `--temperature` — lower (e.g. `0.4`) makes output more conservative/repetitive;
+  higher (e.g. `1.2`) makes it more varied and more likely to go off the rails.
+  Default is `0.8`.
+
+No trained checkpoint yet? Run Setup → Rebuild the dataset → Train above first
+(the full pipeline, end to end, took roughly 30–60 minutes total on this
+project's Apple M3 laptop — see [`notes/build-log.md`](notes/build-log.md)'s
+Task 6 entry for the real numbers and a couple of real interruptions along the
+way).
 
 ## Results
 
